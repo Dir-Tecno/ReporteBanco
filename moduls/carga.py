@@ -5,10 +5,14 @@ from google.cloud import storage
 from datetime import timedelta
 import json
 
+# Define la carpeta dentro del bucket
+folder_name = "BancoGente/"
+
 def download_from_bucket(blob_name, bucket_name, credentials):
     storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    # Incluye el nombre de la carpeta en la ruta del blob
+    blob = bucket.blob(f"{folder_name}{blob_name}")
     
     blob.reload()
     file_date = blob.updated
@@ -27,7 +31,7 @@ def load_data_from_bucket(blob_names, bucket_name, credentials):
         temp_file_name, file_date = download_from_bucket(blob_name, bucket_name, credentials)
         try:
             # Especifica la codificación al leer el archivo de población
-            if blob_name == "departamentos_poblacion.csv":
+            if blob_name == "Copia de departamentos_poblacion.csv":
                 df = pd.read_csv(temp_file_name, low_memory=False, encoding='ISO-8859-1')  # Cambia la codificación según sea necesario
             else:
                 df = pd.read_csv(temp_file_name, low_memory=False)
@@ -42,7 +46,8 @@ def load_data_from_bucket(blob_names, bucket_name, credentials):
 def download_geojson_from_bucket(blob_name, bucket_name, credentials):
     storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    # Incluye el nombre de la carpeta en la ruta del blob
+    blob = bucket.blob(f"{folder_name}{blob_name}")
     
     with tempfile.NamedTemporaryFile(delete=False, suffix=".geojson") as temp_file:
         blob.download_to_filename(temp_file.name)
@@ -53,3 +58,4 @@ def download_geojson_from_bucket(blob_name, bucket_name, credentials):
     
     os.remove(temp_file_name)  # Elimina el archivo temporal
     return geojson_data
+
