@@ -4,6 +4,7 @@ import json
 import geopandas as gpd
 from moduls.carga import load_data_from_bucket, download_geojson_from_bucket
 from moduls.bco_global import mostrar_global
+from moduls.recupero import mostrar_recupero
 
 # Configuración de las credenciales
 credentials_info = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
@@ -50,15 +51,13 @@ tab1, tab2, tab3 = st.tabs(["Global", "Recupero", "Rechazados"])
 
 with tab1:
     st.header("Global")
-    # Muestra una visualización de los datos globales
-    mostrar_global(dfs[0], dfs[1], file_dates[0], geojson_data)  # Añadido 'file_dates[0]'
+    mostrar_global(dfs[0], dfs[1], file_dates[0], geojson_data)
 
-#with tab2:
-    #st.header("Recupero")
-    # Muestra análisis específico de la recuperación
-    #mostrar_recupero(dfs[0], file_dates[0])  # Ajusta según los datos y la función correspondiente
+
+with tab2:
+    st.header("Recupero")
+    mostrar_recupero(dfs[1],dfs[0], file_dates[0], geojson_data) # Ajusta según los datos y la función correspondiente
 
 #with tab3:
     #st.header("Rechazados")
-    # Muestra análisis específico de rechazos
     #mostrar_rechazos(dfs[1], file_dates[1])  # Ajusta según los datos y la función correspondiente
