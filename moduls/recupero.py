@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-from streamlit_feedback import streamlit_feedback
+import plotly.express as px
 
-def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
+
+def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
     
     # Manejo de error si la columna no existe
     if 'FECHA_INGRESO' in df_recupero_localidad.columns:
@@ -14,7 +14,7 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
         df_recupero_localidad = df_recupero_localidad.dropna(subset=['FECHA_INGRESO'])
         
         # Filtro de fechas en la barra lateral
-        st.sidebar.header("Filtros de Fecha")
+        st.sidebar.header("Filtros de Fecha para  Recupero")
         fecha_inicio = st.sidebar.date_input("Fecha de Inicio", df_recupero_localidad['FECHA_INGRESO'].min().date(), key="fecha_inicio_recupero")
         fecha_fin = st.sidebar.date_input("Fecha de Fin", df_recupero_localidad['FECHA_INGRESO'].max().date(), key="fecha_fin_recupero")
         
@@ -29,7 +29,7 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
 
             # Definir las categorías y sus ID
             estado_categorias = {
-                "Pagados": [13, 14, 20,7,16,17,18,21],
+                "Pagados": [13, 14, 16, 17, 18, 20, 21, 7],
                 "Créditos con Deuda": [21],
                 "Impagos/Bajas": [23, 22, 15],
                 "Finalizados": [7],
@@ -82,8 +82,16 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
             # Gráfico de Barras: Formularios por Estado
             st.subheader("Gráfico de Barras: Formularios por Estado")
             grafico_barras = df_filtrado.groupby('N_ESTADO_PRESTAMO').size().reset_index(name='Cantidad')
-            grafico_barras = grafico_barras.set_index('N_ESTADO_PRESTAMO')  # Establecer índice
-            st.bar_chart(grafico_barras['Cantidad'])
+            bar_chart = px.bar(
+                grafico_barras,
+                x='N_ESTADO_PRESTAMO',
+                y='Cantidad',
+                title='Cantidad de Formularios por Estado',
+                labels={'Cantidad': 'Número de Formularios', 'N_ESTADO_PRESTAMO': 'Estado del Préstamo'},
+                color='Cantidad',
+                color_continuous_scale='Blues'
+            )
+            st.plotly_chart(bar_chart)
 
             # Top 10 Localidades para Formularios por Estado
             st.subheader("Top 10 Localidades para Formularios por Estado")
@@ -100,8 +108,16 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
             st.subheader("Gráfico de Barras: Conteo de Localidades")
             conteo_localidades = df_filtrado['N_LOCALIDAD'].value_counts().reset_index()
             conteo_localidades.columns = ['N_LOCALIDAD', 'Cantidad']
-            conteo_localidades = conteo_localidades.set_index('N_LOCALIDAD')  # Establecer índice
-            st.bar_chart(conteo_localidades['Cantidad'])
+            bar_chart_localidades = px.bar(
+                conteo_localidades,
+                x='N_LOCALIDAD',
+                y='Cantidad',
+                title='Conteo de Localidades',
+                labels={'Cantidad': 'Número de Localidades'},
+                color='Cantidad',
+                color_continuous_scale='Viridis'
+            )
+            st.plotly_chart(bar_chart_localidades)
 
             # Top 10 Localidades para Conteo de Localidades
             st.subheader("Top 10 Localidades para Conteo de Localidades")
@@ -115,8 +131,16 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
             st.subheader("Gráfico de Barras: Localidades por Estados")
             localidades_por_estado = df_filtrado.groupby('ID_ESTADO_PRESTAMO')['N_LOCALIDAD'].nunique().reset_index()
             localidades_por_estado.columns = ['ID_ESTADO_PRESTAMO', 'Cantidad']
-            localidades_por_estado = localidades_por_estado.set_index('ID_ESTADO_PRESTAMO')  # Establecer índice
-            st.bar_chart(localidades_por_estado['Cantidad'])
+            bar_chart_localidades_estado = px.bar(
+                localidades_por_estado,
+                x='ID_ESTADO_PRESTAMO',
+                y='Cantidad',
+                title='Cantidad de Localidades por Estado',
+                labels={'Cantidad': 'Número de Localidades'},
+                color='Cantidad',
+                color_continuous_scale='Blues'
+            )
+            st.plotly_chart(bar_chart_localidades_estado)
 
             # Top 10 Localidades para Localidades por Estados
             st.subheader("Top 10 Localidades para Localidades por Estados")
@@ -126,20 +150,4 @@ def mostrar_recupero(df_recupero_localidad,df_global, file_date, geojson_data):
             top_10_localidades_estado_pivot = top_10_localidades_estado.pivot(index='ID_ESTADO_PRESTAMO', columns='N_LOCALIDAD', values='Cantidad').fillna(0)
             st.bar_chart(top_10_localidades_estado_pivot)
 
-            # Feedback en la barra lateral
-            st.sidebar.header("¿Qué podríamos mejorar?")
-            with st.sidebar.form(key='form_feedback_recupero'):
-                streamlit_feedback(
-                    feedback_type="thumbs",
-                    optional_text_label="Tus comentarios aquí...",
-                    align="flex-start",
-                    key='feedback_k_recupero'
-                )
-                submit_feedback = st.form_submit_button('Enviar Feedback')
-
-                if submit_feedback:
-                    feedback = st.session_state.get('feedback_k_recupero')
-                    if feedback:
-                        st.sidebar.success("✔️ ¡Feedback recibido! Gracias por colaborar.")
-                    else:
-                        st.sidebar.warning("⚠️ Selecciona una opción antes de enviar.")
+            
