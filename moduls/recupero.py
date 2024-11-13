@@ -124,5 +124,3 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
             if df_filtrado.empty:
                 st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
         
-       
-

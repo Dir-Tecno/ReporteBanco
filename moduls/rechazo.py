@@ -111,16 +111,6 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
         if df_filtrado.empty:
             st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
 
-    # Feedback: Captura de comentario y valoración
-    comentario = st.text_area("Deja tu comentario")
-    valoracion = st.slider("Valoración", 1, 5, 3, help="Valora entre 1 y 5 estrellas")
 
-    if st.button("Enviar Comentario"):
-        if comentario:
-            # Llamar a la función de feedback con los parámetros adecuados
-            if mostrar_feedback(comentario, valoracion):
-                st.success("¡Comentario enviado exitosamente!")
-        else:
-            st.error("Por favor, ingrese un comentario antes de enviar.")
 
 

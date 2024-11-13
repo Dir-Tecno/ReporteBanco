@@ -134,21 +134,27 @@ def mostrar_global(df_global, df_recupero_localidad, file_date, geojson_data):
     # Confirmar filtro con un botón
     if st.button("Aplicar Filtros"):
         st.success(f"Filtros aplicados: desde {fecha_inicio_global} hasta {fecha_fin_global}.")
-        
 
-   # --- Sidebar para Feedback ---
-    with st.sidebar:
-        st.subheader("Déjanos tu Feedback")
 
-        # Comentario con key único
-        comentario = st.text_area("Deja tu comentario", height=100, key="comentario_feedback")
+   # Buzón de mensajes y valoración del reporte
+    st.sidebar.header("📝 Buzón de Mensajes")
+    st.sidebar.caption("Dirección de Tecnología y Análisis de Datos")
 
-        # Valoración con key único
-        valoracion = st.slider("¿Cómo valoras esta sección?", 1, 5, 3, key="valoracion_feedback")
+    # Área de texto para comentarios
+    comentario = st.sidebar.text_area("Para poder ofrecerte los mejores reportes posibles, tu opinión es muy valiosa. Nos encantaría recibir tus comentarios y saber en qué aspectos podemos mejorarlo.", "", height=100)
 
-        # Botón de enviar comentario con key único
-        if st.button("Enviar Comentario", key="enviar_comentario"):
-            if comentario and valoracion:
-                mostrar_feedback(comentario, valoracion)
+    # Selector de valoración
+    valoracion = st.sidebar.selectbox("Valora el reporte:", [1, 2, 3, 4, 5])
+
+    # Botón para enviar el mensaje
+    if st.sidebar.button("Enviar"):
+        if comentario:
+            # Intentar enviar a Slack
+            if mostrar_feedback(comentario, valoracion):
+                st.sidebar.success("✅ Gracias por tu comentario! El mensaje ha sido enviado.")
+                st.sidebar.write(f"**Comentario:** {comentario}")
+                st.sidebar.write(f"**Valoración:** {valoracion} estrellas")
             else:
-                st.warning("Por favor, ingresa un comentario y selecciona una valoración.")
+                st.sidebar.error("❌ Hubo un error al enviar el mensaje a Slack.")
+        else:
+            st.sidebar.warning("⚠️ Por favor, escribe un comentario antes de enviar.")
