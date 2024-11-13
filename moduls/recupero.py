@@ -67,6 +67,61 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
         # Línea divisoria en gris claro
         st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
+        # Asegurarse de que las columnas necesarias están en formato numérico
+        df_global['MONTO_OTORGADO'] = pd.to_numeric(df_global['MONTO_OTORGADO'], errors='coerce')
+        df_global['DEUDA'] = pd.to_numeric(df_global['DEUDA'], errors='coerce')
+        df_global['DEUDA_NO_VENCIDA'] = pd.to_numeric(df_global['DEUDA_NO_VENCIDA'], errors='coerce')
+
+        # Sumar MONTO_OTORGADO por ID_FORMULARIO_LINEA
+        monto_otorgado_total = df_global.groupby('ID_FORMULARIO_LINEA')['MONTO_OTORGADO'].sum().sum()
+
+        # Sumar DEUDA y DEUDA_NO_VENCIDA por ID_FORMULARIO_LINEA
+        df_global['DEUDA_TOTAL'] = df_global['DEUDA'] + df_global['DEUDA_NO_VENCIDA']
+        deuda_total = df_global.groupby('ID_FORMULARIO_LINEA')['DEUDA_TOTAL'].sum().sum()
+        deuda_no_vencida_total = df_global.groupby('ID_FORMULARIO_LINEA')['DEUDA_NO_VENCIDA'].sum().sum()
+
+        # Diseño de grid para las tarjetas de deuda
+        st.subheader("Resumen de Deudas y Montos")
+
+        # Crear un grid para las tarjetas de montos otorgados y deudas
+        grid = st.columns(3)
+
+        # Mostrar tarjetas en el grid
+        with grid[0]:
+            st.markdown("""
+                <div style="margin: 10px; padding: 15px; border-radius: 8px; background-color: #dff0d8; color: #3c763d;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
+                    <h3 style="text-align: center; font-size: 18px;">Monto Otorgado Total</h3>
+                    <p style="text-align: center; font-size: 32px; font-weight: bold;">{:,.0f}</p>
+                </div>
+            """.format(monto_otorgado_total), unsafe_allow_html=True)
+
+        with grid[1]:
+            st.markdown("""
+                <div style="margin: 10px; padding: 15px; border-radius: 8px; background-color: #f2dede; color: #a94442;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
+                    <h3 style="text-align: center; font-size: 18px;">Deuda Total</h3>
+                    <p style="text-align: center; font-size: 32px; font-weight: bold;">{:,.0f}</p>
+                </div>
+            """.format(deuda_total), unsafe_allow_html=True)
+
+        with grid[2]:
+            st.markdown("""
+                <div style="margin: 10px; padding: 15px; border-radius: 8px; background-color: #d9edf7; color: #31708f;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
+                    <h3 style="text-align: center; font-size: 18px;">Deuda No Vencida Total</h3>
+                    <p style="text-align: center; font-size: 32px; font-weight: bold;">{:,.0f}</p>
+                </div>
+            """.format(deuda_no_vencida_total), unsafe_allow_html=True)
+
+        # Asegurarse de que los valores no sean NaN antes de mostrarlos
+        if pd.isna(monto_otorgado_total) or pd.isna(deuda_total) or pd.isna(deuda_no_vencida_total):
+            st.warning("Algunos de los totales no pudieron ser calculados debido a datos faltantes o incorrectos.")
+
+
+        # Línea divisoria en gris claro
+        st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
         # Gráfico de Barras: Formularios por Estado
         st.subheader("Gráfico de Barras: Formularios por Estado")
         grafico_barras = df_recupero_localidad.groupby('N_ESTADO_PRESTAMO').size().reset_index(name='Cantidad')
@@ -80,29 +135,6 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
             color_continuous_scale='Blues'
         )
         st.plotly_chart(bar_chart)
-
-        # Top 10 Localidades para Formularios por Estado
-        st.subheader("Top 10 Localidades para Formularios por Estado")
-        top_10_estados = df_recupero_localidad.groupby('N_ESTADO_PRESTAMO')['N_LOCALIDAD'].value_counts().reset_index()
-        top_10_estados.columns = ['N_ESTADO_PRESTAMO', 'N_LOCALIDAD', 'Cantidad']
-        top_10_estados = top_10_estados.groupby('N_ESTADO_PRESTAMO').head(10)
-        top_10_estados_pivot = top_10_estados.pivot(index='N_ESTADO_PRESTAMO', columns='N_LOCALIDAD', values='Cantidad').fillna(0)
-        st.bar_chart(top_10_estados_pivot)
-
-        # Gráfico de Barras: Conteo de Localidades
-        st.subheader("Gráfico de Barras: Conteo de Localidades")
-        conteo_localidades = df_recupero_localidad['N_LOCALIDAD'].value_counts().reset_index()
-        conteo_localidades.columns = ['N_LOCALIDAD', 'Cantidad']
-        bar_chart_localidades = px.bar(
-            conteo_localidades,
-            x='N_LOCALIDAD',
-            y='Cantidad',
-            title='Conteo de Localidades',
-            labels={'Cantidad': 'Número de Localidades'},
-            color='Cantidad',
-            color_continuous_scale='Viridis'
-        )
-        st.plotly_chart(bar_chart_localidades)
 
         # Línea divisoria en gris claro
         st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
@@ -123,4 +155,3 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
             
             if df_filtrado.empty:
                 st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
-        
