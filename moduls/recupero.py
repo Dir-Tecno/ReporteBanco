@@ -64,7 +64,45 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
                 cantidad="{:,.0f}".format(conteo_estados["Finalizados"]),
                 bg_color="#dff0d8", text_color="#3c763d"), unsafe_allow_html=True)
             
+    
         # Línea divisoria en gris claro
+        st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
+        # Gráfico de Barras: Formularios por Estado
+        st.subheader("Gráfico de Barras: Formularios por Estado")
+        grafico_barras = df_recupero_localidad.groupby('N_ESTADO_PRESTAMO').size().reset_index(name='Cantidad')
+        bar_chart = px.bar(
+            grafico_barras,
+            x='N_ESTADO_PRESTAMO',
+            y='Cantidad',
+            title='Cantidad de Formularios por Estado',
+            labels={'Cantidad': 'Número de Formularios', 'N_ESTADO_PRESTAMO': 'Estado del Préstamo'},
+            color='Cantidad',
+            color_continuous_scale='Blues'
+        )
+        st.plotly_chart(bar_chart)
+
+        # Línea divisoria en gris claro
+        st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
+        # Filtro de fechas compacto al final
+        st.subheader("Filtrar por Fecha")
+        fecha_inicio = st.date_input("Fecha de Inicio", df_recupero_localidad['FECHA_INGRESO'].min().date(), key="fecha_inicio_final")
+        fecha_fin = st.date_input("Fecha de Fin", df_recupero_localidad['FECHA_INGRESO'].max().date(), key="fecha_fin_final")
+
+        if fecha_inicio > fecha_fin:
+            st.error("La fecha de inicio debe ser anterior a la fecha de fin.")
+        else:
+            # Filtrar el DataFrame según las fechas seleccionadas
+            fecha_inicio_dt = pd.to_datetime(fecha_inicio)
+            fecha_fin_dt = pd.to_datetime(fecha_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+            df_filtrado = df_recupero_localidad[(df_recupero_localidad['FECHA_INGRESO'] >= fecha_inicio_dt) & 
+                                                 (df_recupero_localidad['FECHA_INGRESO'] <= fecha_fin_dt)]
+            
+            if df_filtrado.empty:
+                st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
+
+ # Línea divisoria en gris claro
         st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
         # Asegurarse de que las columnas necesarias están en formato numérico
@@ -117,41 +155,3 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
         # Asegurarse de que los valores no sean NaN antes de mostrarlos
         if pd.isna(monto_otorgado_total) or pd.isna(deuda_total) or pd.isna(deuda_no_vencida_total):
             st.warning("Algunos de los totales no pudieron ser calculados debido a datos faltantes o incorrectos.")
-
-
-        # Línea divisoria en gris claro
-        st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
-
-        # Gráfico de Barras: Formularios por Estado
-        st.subheader("Gráfico de Barras: Formularios por Estado")
-        grafico_barras = df_recupero_localidad.groupby('N_ESTADO_PRESTAMO').size().reset_index(name='Cantidad')
-        bar_chart = px.bar(
-            grafico_barras,
-            x='N_ESTADO_PRESTAMO',
-            y='Cantidad',
-            title='Cantidad de Formularios por Estado',
-            labels={'Cantidad': 'Número de Formularios', 'N_ESTADO_PRESTAMO': 'Estado del Préstamo'},
-            color='Cantidad',
-            color_continuous_scale='Blues'
-        )
-        st.plotly_chart(bar_chart)
-
-        # Línea divisoria en gris claro
-        st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
-
-        # Filtro de fechas compacto al final
-        st.subheader("Filtrar por Fecha")
-        fecha_inicio = st.date_input("Fecha de Inicio", df_recupero_localidad['FECHA_INGRESO'].min().date(), key="fecha_inicio_final")
-        fecha_fin = st.date_input("Fecha de Fin", df_recupero_localidad['FECHA_INGRESO'].max().date(), key="fecha_fin_final")
-
-        if fecha_inicio > fecha_fin:
-            st.error("La fecha de inicio debe ser anterior a la fecha de fin.")
-        else:
-            # Filtrar el DataFrame según las fechas seleccionadas
-            fecha_inicio_dt = pd.to_datetime(fecha_inicio)
-            fecha_fin_dt = pd.to_datetime(fecha_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-            df_filtrado = df_recupero_localidad[(df_recupero_localidad['FECHA_INGRESO'] >= fecha_inicio_dt) & 
-                                                 (df_recupero_localidad['FECHA_INGRESO'] <= fecha_fin_dt)]
-            
-            if df_filtrado.empty:
-                st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
