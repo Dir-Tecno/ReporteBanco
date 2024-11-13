@@ -52,14 +52,11 @@ geojson_data = gdf.__geo_interface__
 tab1, tab2, tab3 = st.tabs(["Global", "Recupero", "Rechazados"])
 
 with tab1:
-    st.header("Global")
     mostrar_global(dfs[0], dfs[1], file_dates[0], geojson_data)
 
 with tab2:
-    st.header("Recupero")
     mostrar_recupero(dfs[1], dfs[0], file_dates[0], geojson_data)  
 
 with tab3:
-     st.header("Rechazados")
      mostrar_rechazados(dfs[1], file_dates[1],geojson_data)  
 
