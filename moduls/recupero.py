@@ -155,3 +155,40 @@ def mostrar_recupero(df_recupero_localidad, df_global, file_date, geojson_data):
         # Asegurarse de que los valores no sean NaN antes de mostrarlos
         if pd.isna(monto_otorgado_total) or pd.isna(deuda_total) or pd.isna(deuda_no_vencida_total):
             st.warning("Algunos de los totales no pudieron ser calculados debido a datos faltantes o incorrectos.")
+
+
+       # Línea divisoria en gris claro
+    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
+    # Serie de Tiempo: Evolución de la Deuda usando FEC_FORM
+    st.subheader("Evolución de la Deuda Vencida")
+
+    # Verificar que las columnas necesarias existan y no tengan todos los valores nulos
+    if {'DEUDA', 'FEC_FORM', 'ID_ESTADO_PRESTAMO'}.issubset(df_global.columns):
+        df_global['FEC_FORM'] = pd.to_datetime(df_global['FEC_FORM'], errors='coerce')
+
+        # Filtrar por los valores de ID_ESTADO_PRESTAMO
+        estados_filtrados = [13, 14, 16, 17, 18, 21]
+        df_filtrado = df_global[df_global['ID_ESTADO_PRESTAMO'].isin(estados_filtrados)]
+        
+        # Asegurarse de que no haya NaN en las columnas necesarias
+        df_filtrado = df_filtrado.dropna(subset=['FEC_FORM', 'DEUDA'])
+
+        # Agrupar por fecha y sumar las deudas
+        deuda_por_fecha = df_filtrado.groupby(df_filtrado['FEC_FORM'].dt.date)['DEUDA'].sum().reset_index()
+        deuda_por_fecha.columns = ['Fecha', 'Deuda Total']
+
+        # Crear gráfico de línea
+        line_chart = px.line(
+            deuda_por_fecha,
+            x='Fecha',
+            y='Deuda Total',
+            labels={'Fecha': 'Fecha', 'Deuda Total': 'Deuda Total ($)'},
+            line_shape='spline',
+            markers=True
+        )
+
+        st.plotly_chart(line_chart)
+    else:
+        st.warning("No se encontraron datos válidos para generar la serie de tiempo.")
+
