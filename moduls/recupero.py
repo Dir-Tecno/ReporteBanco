@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime, timedelta
 
 def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     
@@ -9,7 +10,7 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
         st.write("Columnas disponibles:", df_recupero.columns.tolist())
         return
     
-     # Conversión de columnas de fecha con validación de rango
+    # Conversión de columnas de fecha con validación de rango
     date_columns = ['FEC_FORM', 'FEC_INICIO_PAGO', 'FEC_FIN_PAGO']
     min_date = pd.Timestamp.min
     max_date = pd.Timestamp.max
@@ -26,6 +27,25 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     if df_recupero.empty:
         st.warning("No hay datos válidos después de procesar las fechas. Verifica los datos cargados.")
         return
+    
+    # Cálculo de solicitudes en las últimas 24 horas
+    fecha_actual = datetime.now()
+    fecha_24hs_antes = fecha_actual - timedelta(days=1)
+    solicitudes_ultimas_24hs = df_recupero[df_recupero['FEC_FORM'] >= fecha_24hs_antes]
+    cantidad_solicitudes_24hs = solicitudes_ultimas_24hs.shape[0]
+
+    # Diseño para mostrar los círculos informativos con descripción
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; flex-direction: column; align-items: center; margin-bottom: 30px;">
+            <div style="width: 120px; height: 120px; background-color: #1E9AD8; color: white; 
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                        font-size: 32px; font-weight: bold;">
+                {cantidad_solicitudes_24hs}
+            </div>
+            <p style="text-align: center; font-size: 16px; margin-top: 10px;">Solicitudes en las últimas 24 horas</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Categorías de estado
     estado_categorias = {
@@ -77,6 +97,28 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
             bg_color="#dff0d8", text_color="#3c763d"), unsafe_allow_html=True)
 
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+    
+    # Calcular DEUDA VENCIDA y DEUDA NO VENCIDA
+    deuda_vencida = df_recupero['DEUDA'].sum() if 'DEUDA' in df_recupero.columns else 0
+    deuda_no_vencida = df_recupero['DEUDA_NO_VENCIDA'].sum() if 'DEUDA_NO_VENCIDA' in df_recupero.columns else 0
+
+    # Mostrar tarjetas de DEUDA VENCIDA y DEUDA NO VENCIDA
+    col5, col6 = st.columns(2)
+
+    with col5:
+        st.markdown(cuadro_estilo.format(
+            titulo="DEUDA VENCIDA",
+            cantidad="${:,.2f}".format(deuda_vencida),
+            bg_color="#f2dede", text_color="#a94442"), unsafe_allow_html=True)
+
+    with col6:
+        st.markdown(cuadro_estilo.format(
+            titulo="DEUDA NO VENCIDA",
+            cantidad="${:,.2f}".format(deuda_no_vencida),
+            bg_color="#d9edf7", text_color="#31708f"), unsafe_allow_html=True)
+
+    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
 
     # Filtro de fechas
     st.subheader("Filtrar por Fecha")
@@ -128,15 +170,15 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
                 deuda_por_fecha,
                 x='Fecha',
                 y='Deuda Total',
-                labels={'Fecha': 'Fecha', 'Deuda Total': 'Deuda Total ($)'},
-                line_shape='spline',
-                markers=True
+                labels={'Fecha': 'Fecha', 'Deuda Total': 'Deuda Vencida'},
+                title='Evolución de la Deuda Vencida'
             )
             st.plotly_chart(line_chart)
         else:
-            st.warning("No se encontraron datos suficientes para generar la serie de tiempo.")
+            st.warning("No se encontraron datos para la serie de tiempo.")
     else:
-        st.warning("Las columnas necesarias para la serie de tiempo no están disponibles.")
+        st.warning("No se encontró la columna 'DEUDA' para generar la serie de tiempo.")
+
 
    
 
