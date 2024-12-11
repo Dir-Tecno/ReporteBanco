@@ -4,17 +4,26 @@ from datetime import datetime
 import plotly.express as px
 from funciones import mostrar_feedback
 
-def mostrar_global(df_global, df_recupero_localidad, file_date, geojson_data):
+def mostrar_global(geojson_data, df_departamentos, df_global, df_recupero):
     # Agregar título y fecha del archivo
     st.title("Análisis Global de Formularios")
-    st.write(f"Datos actualizados al: {file_date.strftime('%d/%m/%Y %H:%M:%S')}") 
 
-    # Conversión de columnas de fecha
-    date_columns = ['FEC_FORM', 'FEC_INICIO_PAGO', 'FEC_FIN_PAGO']
+    # Conversión de columnas de fecha con validación de rango
+    date_columns = ['FECHA_INGRESO', 'FEC_INICIO_PAGO', 'FEC_FIN_PAGO']
+    min_date = pd.Timestamp.min
+    max_date = pd.Timestamp.max
+
     for col in date_columns:
         if col in df_global.columns:
             df_global[col] = pd.to_datetime(df_global[col], errors='coerce')
-    df_global = df_global.dropna(subset=['FEC_FORM'])  
+            df_global.loc[(df_global[col] < min_date) | (df_global[col] > max_date), col] = pd.NaT
+
+    # Eliminar filas con fechas inválidas
+    df_global = df_global.dropna(subset=['FECHA_INGRESO'])
+
+    if df_global.empty:
+        st.warning("No hay datos válidos después de procesar las fechas. Verifica los datos cargados.")
+        return
 
     # Filtrar los datos por las fechas seleccionadas (sin barra lateral)
     df_filtrado_global = df_global  # Inicialmente el dataframe completo
@@ -72,15 +81,18 @@ def mostrar_global(df_global, df_recupero_localidad, file_date, geojson_data):
 
     # Serie Histórica
     st.subheader("Serie Histórica: Evolución de Formularios a lo Largo del Tiempo")
-    serie_historica = df_filtrado_global.groupby(df_filtrado_global['FEC_FORM'].dt.to_period('M')).size().reset_index(name='Cantidad')
-    serie_historica['FEC_FORM'] = serie_historica['FEC_FORM'].dt.to_timestamp()
+    serie_historica = df_filtrado_global.groupby(df_filtrado_global['FECHA_INGRESO'].dt.to_period('M')).size().reset_index(name='Cantidad')
+    serie_historica['FECHA_INGRESO'] = serie_historica['FECHA_INGRESO'].apply(
+        lambda x: x.start_time if min_date <= x.start_time <= max_date else pd.NaT
+    )
+    serie_historica = serie_historica.dropna(subset=['FECHA_INGRESO'])
 
     fig_historia = px.line(
         serie_historica, 
-        x='FEC_FORM', 
+        x='FECHA_INGRESO', 
         y='Cantidad', 
         title='Evolución de Formularios por Mes',
-        labels={'Cantidad': 'Cantidad de Formularios', 'FEC_FORM': 'Fecha'},
+        labels={'Cantidad': 'Cantidad de Formularios', 'FECHA_INGRESO': 'Fecha'},
         markers=True
     )
     st.plotly_chart(fig_historia)
@@ -108,12 +120,12 @@ def mostrar_global(df_global, df_recupero_localidad, file_date, geojson_data):
     st.subheader("Filtros de Fecha para Global")
 
     # Convertir fechas de entrada a tipo datetime
-    min_date = df_global['FEC_FORM'].min().date()
-    max_date = df_global['FEC_FORM'].max().date()
+    min_date = df_global['FECHA_INGRESO'].min().date()
+    max_date = df_global['FECHA_INGRESO'].max().date()
 
     # Utilizando una sola fila para los filtros
     col_inicio, col_fin = st.columns(2)
-    
+
     with col_inicio:
         fecha_inicio_global = st.date_input("Fecha de Inicio", min_date)
 
@@ -127,16 +139,15 @@ def mostrar_global(df_global, df_recupero_localidad, file_date, geojson_data):
 
     # Filtrar los datos por las fechas seleccionadas
     df_filtrado_global = df_global[
-        (df_global['FEC_FORM'] >= pd.to_datetime(fecha_inicio_global)) & 
-        (df_global['FEC_FORM'] <= pd.to_datetime(fecha_fin_global))
+        (df_global['FECHA_INGRESO'] >= pd.to_datetime(fecha_inicio_global)) & 
+        (df_global['FECHA_INGRESO'] <= pd.to_datetime(fecha_fin_global))
     ]
 
     # Confirmar filtro con un botón
     if st.button("Aplicar Filtros"):
         st.success(f"Filtros aplicados: desde {fecha_inicio_global} hasta {fecha_fin_global}.")
 
-
-   # Buzón de mensajes y valoración del reporte
+    # Buzón de mensajes y valoración del reporte
     st.sidebar.header("📝 Buzón de Mensajes")
     st.sidebar.caption("Dirección de Tecnología y Análisis de Datos")
 

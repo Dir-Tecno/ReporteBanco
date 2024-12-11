@@ -3,16 +3,14 @@ import pandas as pd
 import plotly.express as px
 from funciones import mostrar_feedback
 
-def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
-    st.write(f"Datos actualizados al: {file_date.strftime('%d/%m/%Y %H:%M:%S')}")
-
+def mostrar_rechazados(df_global, geojson_data,df_departamentos):
     # Convertir la columna a tipo datetime y filtrar NaT
-    if 'FECHA_INGRESO' in df_recupero_localidad.columns:
-        df_recupero_localidad['FECHA_INGRESO'] = pd.to_datetime(df_recupero_localidad['FECHA_INGRESO'], errors='coerce')
-        df_recupero_localidad = df_recupero_localidad.dropna(subset=['FECHA_INGRESO'])
+    if 'FECHA_INGRESO' in df_global.columns:
+        df_global['FECHA_INGRESO'] = pd.to_datetime(df_global['FECHA_INGRESO'], errors='coerce')
+        df_global = df_global.dropna(subset=['FECHA_INGRESO'])
 
     # Revisar si hay datos después de limpiar
-    if df_recupero_localidad.empty:
+    if df_global.empty:
         st.warning("No hay datos disponibles después de filtrar por fecha.")
         return
 
@@ -24,7 +22,7 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
     }
 
     # Contar rechazos por categoría
-    conteo_rechazos = {categoria: df_recupero_localidad[df_recupero_localidad['ID_ESTADO_FORMULARIO'].isin(ids)].shape[0]
+    conteo_rechazos = {categoria: df_global[df_global['ID_ESTADO_FORMULARIO'].isin(ids)].shape[0]
                        for categoria, ids in categoria_rechazo.items()}
 
     # Diseño de columnas y cuadros
@@ -61,7 +59,7 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
 
     # Gráficos de barras por categoría y por localidad
     st.subheader("Gráfico de Barras: Rechazos por Categoría")
-    grafico_barras_rechazos = df_recupero_localidad.groupby('N_ESTADO_FORMULARIO').size().reset_index(name='Cantidad')
+    grafico_barras_rechazos = df_global.groupby('N_ESTADO_FORMULARIO').size().reset_index(name='Cantidad')
     bar_chart_rechazos = px.bar(
         grafico_barras_rechazos,
         x='N_ESTADO_FORMULARIO',
@@ -75,7 +73,7 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
 
     # Top 10 Localidades Rechazadas
     st.subheader("Top 10 Localidades Rechazadas")
-    conteo_localidades_rechazados = df_recupero_localidad['N_LOCALIDAD'].value_counts().reset_index()
+    conteo_localidades_rechazados = df_global['N_LOCALIDAD'].value_counts().reset_index()
     conteo_localidades_rechazados.columns = ['N_LOCALIDAD', 'Cantidad']
     conteo_localidades_rechazados = conteo_localidades_rechazados.sort_values(by='Cantidad', ascending=False).head(10)
 
@@ -95,8 +93,8 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
     st.subheader("Filtrar por Fecha")
 
-    fecha_inicio = st.date_input("Fecha de Inicio", df_recupero_localidad['FECHA_INGRESO'].min().date(), key="fecha_inicio_rechazo")
-    fecha_fin = st.date_input("Fecha de Fin", df_recupero_localidad['FECHA_INGRESO'].max().date(), key="fecha_fin_rechazo")
+    fecha_inicio = st.date_input("Fecha de Inicio", df_global['FECHA_INGRESO'].min().date(), key="fecha_inicio_rechazo")
+    fecha_fin = st.date_input("Fecha de Fin", df_global['FECHA_INGRESO'].max().date(), key="fecha_fin_rechazo")
 
 
     if fecha_inicio > fecha_fin:
@@ -105,8 +103,8 @@ def mostrar_rechazados(df_recupero_localidad, file_date, geojson_data):
         # Filtrar el DataFrame según las fechas seleccionadas
         fecha_inicio_dt = pd.to_datetime(fecha_inicio)
         fecha_fin_dt = pd.to_datetime(fecha_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-        df_filtrado = df_recupero_localidad[(df_recupero_localidad['FECHA_INGRESO'] >= fecha_inicio_dt) & 
-                                             (df_recupero_localidad['FECHA_INGRESO'] <= fecha_fin_dt)]
+        df_filtrado = df_global[(df_global['FECHA_INGRESO'] >= fecha_inicio_dt) & 
+                                             (df_global['FECHA_INGRESO'] <= fecha_fin_dt)]
         
         if df_filtrado.empty:
             st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
