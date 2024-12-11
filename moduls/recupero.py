@@ -34,18 +34,7 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     solicitudes_ultimas_24hs = df_recupero[df_recupero['FEC_FORM'] >= fecha_24hs_antes]
     cantidad_solicitudes_24hs = solicitudes_ultimas_24hs.shape[0]
 
-    # Diseño para mostrar los círculos informativos con descripción
-    st.markdown(
-        f"""
-        <div style="display: flex; justify-content: center; flex-direction: column; align-items: center; margin-bottom: 30px;">
-            <div style="width: 120px; height: 120px; background-color: #1E9AD8; color: white; 
-                        border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                        font-size: 32px; font-weight: bold;">
-                {cantidad_solicitudes_24hs}
-            </div>
-            <p style="text-align: center; font-size: 16px; margin-top: 10px;">Solicitudes en las últimas 24 horas</p>
-        </div>
-        """, unsafe_allow_html=True)
+
 
     # Categorías de estado
     estado_categorias = {
@@ -95,7 +84,8 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
             titulo="Finalizados",
             cantidad="{:,.0f}".format(conteo_estados["Finalizados"]),
             bg_color="#dff0d8", text_color="#3c763d"), unsafe_allow_html=True)
-
+    
+    ## Divisor
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
     
     # Calcular DEUDA VENCIDA y DEUDA NO VENCIDA
@@ -103,7 +93,7 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     deuda_no_vencida = df_recupero['DEUDA_NO_VENCIDA'].sum() if 'DEUDA_NO_VENCIDA' in df_recupero.columns else 0
 
     # Mostrar tarjetas de DEUDA VENCIDA y DEUDA NO VENCIDA
-    col5, col6 = st.columns(2)
+    col5, col6,col7 = st.columns(3)
 
     with col5:
         st.markdown(cuadro_estilo.format(
@@ -116,7 +106,23 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
             titulo="DEUDA NO VENCIDA",
             cantidad="${:,.2f}".format(deuda_no_vencida),
             bg_color="#d9edf7", text_color="#31708f"), unsafe_allow_html=True)
+        
 
+    with col7:
+        st.markdown(
+            f"""
+            <div style="display: flex; justify-content: center; flex-direction: column; align-items: center; margin-bottom: 30px;">
+                <div style="width: 120px; height: 120px; background-color: #1E9AD8; color: white; 
+                            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                            font-size: 32px; font-weight: bold;">
+                    {cantidad_solicitudes_24hs}
+                </div>
+                <p style="text-align: center; font-size: 16px; margin-top: 10px;">Solicitudes en las últimas 24 horas</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+
+    ## Divisor
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
 
@@ -156,6 +162,7 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     else:
         st.warning("No se encontraron datos para generar el gráfico de barras.")
 
+    ## Divisor 
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
     # Serie de tiempo
