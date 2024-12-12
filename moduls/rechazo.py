@@ -17,7 +17,6 @@ def mostrar_rechazados(df_global, geojson_data,df_departamentos):
     # Definir las categorías de rechazo y sus ID
     categoria_rechazo = {
         "Rechazo": [4, 33, 18, 14, 17, 20, 30, 31, 32, 35, 13, 28, 29, 36, 22],
-        "Impago": [11, 12],
         "Desistido": [6],
     }
 
@@ -43,12 +42,6 @@ def mostrar_rechazados(df_global, geojson_data,df_departamentos):
             bg_color="#f2dede", text_color="#a94442"), unsafe_allow_html=True)
 
     with col2:
-        st.markdown(cuadro_estilo.format(
-            titulo="Impago",
-            cantidad="{:,.0f}".format(conteo_rechazos["Impago"]),
-            bg_color="#dff0d8", text_color="#3c763d"), unsafe_allow_html=True)
-
-    with col3:
         st.markdown(cuadro_estilo.format(
             titulo="Desistido",
             cantidad="{:,.0f}".format(conteo_rechazos["Desistido"]),
@@ -89,25 +82,7 @@ def mostrar_rechazados(df_global, geojson_data,df_departamentos):
     bar_chart_localidades_rechazados.update_traces(texttemplate='%{y}', textposition='outside')
     st.plotly_chart(bar_chart_localidades_rechazados)
 
-    # Filtro de Fechas Compacto al Final
-    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
-    st.subheader("Filtrar por Fecha")
 
-    fecha_inicio = st.date_input("Fecha de Inicio", df_global['FECHA_INGRESO'].min().date(), key="fecha_inicio_rechazo")
-    fecha_fin = st.date_input("Fecha de Fin", df_global['FECHA_INGRESO'].max().date(), key="fecha_fin_rechazo")
-
-
-    if fecha_inicio > fecha_fin:
-        st.error("La fecha de inicio debe ser anterior a la fecha de fin.")
-    else:
-        # Filtrar el DataFrame según las fechas seleccionadas
-        fecha_inicio_dt = pd.to_datetime(fecha_inicio)
-        fecha_fin_dt = pd.to_datetime(fecha_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-        df_filtrado = df_global[(df_global['FECHA_INGRESO'] >= fecha_inicio_dt) & 
-                                             (df_global['FECHA_INGRESO'] <= fecha_fin_dt)]
-        
-        if df_filtrado.empty:
-            st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
 
 
 

@@ -38,9 +38,9 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
 
     # Categorías de estado
     estado_categorias = {
-        "Pagados": [13, 14, 16, 17, 18, 20, 21, 7],
+        "Pagados": [13, 14,15, 16, 17, 18, 20, 21, 7],
         "Créditos con Deuda": [21],
-        "Impagos/Bajas": [23, 22, 15],
+        "Impagos/Bajas": [23, 22],
         "Finalizados": [7],
     }
 
@@ -125,46 +125,6 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
     ## Divisor
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
-
-    # Filtro de fechas
-    st.subheader("Filtrar por Fecha")
-    fecha_inicio = st.date_input("Fecha de Inicio", df_recupero['FEC_FORM'].min().date(), key="fecha_inicio")
-    fecha_fin = st.date_input("Fecha de Fin", df_recupero['FEC_FORM'].max().date())
-
-    if fecha_inicio > fecha_fin:
-        st.error("La fecha de inicio debe ser anterior a la fecha de fin.")
-        return
-
-    fecha_inicio_dt = pd.to_datetime(fecha_inicio)
-    fecha_fin_dt = pd.to_datetime(fecha_fin) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-    df_filtrado = df_recupero[(df_recupero['FEC_FORM'] >= fecha_inicio_dt) & 
-                              (df_recupero['FEC_FORM'] <= fecha_fin_dt)]
-
-    if df_filtrado.empty:
-        st.warning("No hay datos disponibles para el rango de fechas seleccionado.")
-        return
-
-    # Gráfico de barras
-    st.subheader("Gráfico de Barras: Formularios por Estado")
-    grafico_barras = df_filtrado.groupby('N_ESTADO_PRESTAMO').size().reset_index(name='Cantidad')
-
-    if not grafico_barras.empty:
-        bar_chart = px.bar(
-            grafico_barras,
-            x='N_ESTADO_PRESTAMO',
-            y='Cantidad',
-            title='Cantidad de Formularios por Estado',
-            labels={'Cantidad': 'Número de Formularios', 'N_ESTADO_PRESTAMO': 'Estado del Préstamo'},
-            color='Cantidad',
-            color_continuous_scale='Blues'
-        )
-        st.plotly_chart(bar_chart)
-    else:
-        st.warning("No se encontraron datos para generar el gráfico de barras.")
-
-    ## Divisor 
-    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
-
     # Serie de tiempo
     st.subheader("Evolución de la Deuda Vencida")
     if 'DEUDA' in df_recupero.columns and 'FEC_FORM' in df_recupero.columns:
@@ -185,7 +145,3 @@ def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
             st.warning("No se encontraron datos para la serie de tiempo.")
     else:
         st.warning("No se encontró la columna 'DEUDA' para generar la serie de tiempo.")
-
-
-   
-
