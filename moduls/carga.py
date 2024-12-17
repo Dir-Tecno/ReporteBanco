@@ -7,7 +7,9 @@ from datetime import timedelta
 import json
 from supabase import create_client
 from io import BytesIO
+import streamlit as st
 
+@st.cache_data(ttl=3600)  # Cache por 1 hora
 def load_data_from_bucket(bucket_name, supabase_url, supabase_key):
     dfs = []
     file_dates = []
