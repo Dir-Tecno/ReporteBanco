@@ -1,59 +1,81 @@
 import pandas as pd
-import tempfile
-import os
-import json 
 import geopandas as gpd
-from datetime import timedelta
 import json
-from supabase import create_client
 from io import BytesIO
 import streamlit as st
+from huggingface_hub import hf_hub_download
+import os
+import requests
 
-@st.cache_data(ttl=3600)  # Cache por 1 hora
-def load_data_from_bucket(bucket_name, supabase_url, supabase_key):
+@st.cache_data(ttl=3600)
+def load_data_from_huggingface(repo_id, token=None):
+    """
+    Carga los archivos desde Hugging Face.
+    
+    Args:
+        repo_id (str): ID del repositorio en formato 'username/repository'
+        token (str, optional): Token de acceso si el repositorio es privado
+    
+    Returns:
+        tuple: (lista de dataframes, lista de fechas de modificación)
+    """
     dfs = []
     file_dates = []
+    
+    # Lista de archivos a cargar
+    files = [
+        "capa_departamentos_2010.geojson",
+        "departamentos_poblacion.csv",
+        "vt_nomina_rep_dpto_localidad.parquet",
+        "VT_NOMINA_REP_RECUPERO_X_ANIO.parquet"
+    ]
+    
     try:
-        supabase = create_client(supabase_url, supabase_key)
-        files = supabase.storage.from_(bucket_name).list()
+        if not token:
+            st.warning("No se proporcionó token de Hugging Face. Si el repositorio es privado, esto causará un error.")
+            
+        for file_name in files:
+            try:
+                # Descargar archivo desde Hugging Face
+                file_path = hf_hub_download(
+                    repo_id=repo_id,
+                    filename=file_name,
+                    token=token,
+                    repo_type="dataset"
+                )
+                
+                if file_name.endswith('.parquet'):
+                    df = pd.read_parquet(file_path)
+                    df.name = file_name
+                    dfs.append(df)
+                    file_dates.append(os.path.getmtime(file_path))
+                    
+                elif file_name.endswith('.geojson'):
+                    with open(file_path, 'r') as f:
+                        geojson_dict = json.load(f)
+                    gdf = gpd.GeoDataFrame.from_features(geojson_dict['features'])
+                    if gdf.crs is None or gdf.crs.to_string() != 'EPSG:22174':
+                        gdf = gdf.set_crs(epsg=22174)
+                    gdf = gdf.to_crs(epsg=4326)
+                    dfs.append(gdf.__geo_interface__)
+                    file_dates.append(os.path.getmtime(file_path))
+                    
+                elif file_name.endswith('.csv'):
+                    df = pd.read_csv(file_path)
+                    dfs.append(df)
+                    file_dates.append(os.path.getmtime(file_path))
+                    
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    st.error(f"Error de autenticación al descargar {file_name}. Verifica tu token de Hugging Face.")
+                elif e.response.status_code == 404:
+                    st.error(f"No se encontró el archivo {file_name} en el repositorio.")
+                else:
+                    st.error(f"Error al descargar {file_name}: {str(e)}")
+                raise
+                
     except Exception as e:
-        print(f"Error al cargar datos del bucket: {str(e)}")
-   
-
-    for file in files:
-        # Obtener metadatos del archivo
-        creation_date = file['created_at']
-        # Descargar el archivo desde el bucket
-        response = supabase.storage.from_(bucket_name).download(file['name'])
-        if file['name'].endswith('.parquet'):
-            df = pd.read_parquet(BytesIO(response))
-            df.name = file['name']  # Leer el archivo parquet
-            dfs.append(df)
-            file_dates.append(creation_date)
-              # Asignar el nombre del archivo al DataFrame
-        elif file['name'].endswith('.geojson'):
-            if isinstance(response, bytes):
-                geojson_dict = json.loads(response.decode('utf-8'))
-            else:
-                geojson_dict = response  # Ya es un dict
-            # Crear un GeoDataFrame desde las características del GeoJSON
-            gdf = gpd.GeoDataFrame.from_features(geojson_dict['features'])
-            # Verificar y asignar el CRS original si es necesario
-            if gdf.crs is None or gdf.crs.to_string() != 'EPSG:22174':
-                gdf = gdf.set_crs(epsg=22174)  # Asegúrate de que este sea el CRS correcto
-            # Convertir a WGS 84 para la visualización (EPSG:4326)
-            gdf = gdf.to_crs(epsg=4326)
-            # Convertir el GeoDataFrame a GeoJSON para la visualización
-            response = gdf.__geo_interface__
-            dfs.append(response)
-        elif file['name'].endswith('.csv'):
-            df = pd.read_csv(BytesIO(response))
-            dfs.append(df)
-            file_dates.append(creation_date)
-        
-        #provisorio antes de que sea parquet para que se saque de global
-        elif file['name'].endswith('.txt'):
-            df = pd.read_csv(BytesIO(response))
-            dfs.append(df)
-            file_dates.append(creation_date)
+        st.error(f"Error al cargar los datos desde Hugging Face: {str(e)}")
+        raise e
+    
     return dfs, file_dates

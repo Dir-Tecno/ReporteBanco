@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import plotly.express as px
-from funciones import mostrar_feedback, crear_tarjeta_trello,obtener_listas_trello,obtener_tableros_trello
+from funciones import mostrar_feedback
 
 def mostrar_global(geojson_data, df_departamentos, df_global, df_recupero):
     # Agregar título y fecha del archivo
@@ -169,48 +169,3 @@ def mostrar_global(geojson_data, df_departamentos, df_global, df_recupero):
                 st.sidebar.error("❌ Hubo un error al enviar el mensaje a Slack.")
         else:
             st.sidebar.warning("⚠️ Por favor, escribe un comentario antes de enviar.")
-
-
-    st.sidebar.header("📋 Crear Tarjetas en Trello")
-    st.sidebar.caption("Organiza tareas relacionadas con los formularios directamente en Trello.")
-
-    # Cargar tableros disponibles
-    try:
-        tableros = obtener_tableros_trello()
-        if tableros:
-            opciones_tableros = {tablero["name"]: tablero["id"] for tablero in tableros}
-            tablero_seleccionado = st.sidebar.selectbox("Selecciona un Tablero", options=opciones_tableros.keys())
-            
-            # Cargar listas del tablero seleccionado
-            if tablero_seleccionado:
-                tablero_id = opciones_tableros[tablero_seleccionado]
-                try:
-                    listas = obtener_listas_trello(tablero_id)
-                    if listas:
-                        opciones_listas = {lista["name"]: lista["id"] for lista in listas}
-                        lista_seleccionada = st.sidebar.selectbox("Selecciona una Lista", options=opciones_listas.keys())
-                        
-                        # Entrada de datos para la tarjeta
-                        titulo_tarjeta = st.sidebar.text_input("Título de la Tarjeta", value="Nueva Tarjeta de Formulario")
-                        descripcion_tarjeta = st.sidebar.text_area("Descripción", "Descripción del formulario o tarea asociada.")
-                        
-                        # Botón para crear la tarjeta
-                        if st.sidebar.button("Crear Tarjeta"):
-                            if titulo_tarjeta.strip() and descripcion_tarjeta.strip():
-                                lista_id = opciones_listas[lista_seleccionada]
-                                if crear_tarjeta_trello(titulo_tarjeta, descripcion_tarjeta, lista_id):
-                                    st.sidebar.success(f"✅ Tarjeta '{titulo_tarjeta}' creada correctamente.")
-                                else:
-                                    st.sidebar.error("❌ Ocurrió un error al intentar crear la tarjeta.")
-                            else:
-                                st.sidebar.warning("⚠️ Por favor, completa tanto el título como la descripción de la tarjeta.")
-                    else:
-                        st.sidebar.warning("No se encontraron listas en este tablero.")
-                except Exception as e:
-                    st.sidebar.error(f"Error al obtener listas: {e}")
-        else:
-            st.sidebar.warning("No se encontraron tableros accesibles para tu cuenta.")
-    except Exception as e:
-        st.sidebar.error(f"Error al conectar con Trello: {e}")
-
-
