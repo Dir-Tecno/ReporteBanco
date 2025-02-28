@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 
-def mostrar_recupero(df_recupero, df_departamentos, geojson_data):
+def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_data):
     
     if 'FEC_FORM' not in df_recupero.columns:
         st.error("La columna 'FEC_FORM' no se encuentra en el DataFrame.")

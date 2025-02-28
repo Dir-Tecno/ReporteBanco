@@ -21,6 +21,7 @@ try:
         df_departamentos = dfs[1]  # departamentos_poblacion.csv
         df_global = dfs[2]  # vt_nomina_rep_dpto_localidad.parquet
         df_recupero = dfs[3]  # VT_NOMINA_REP_RECUPERO_X_ANIO.parquet
+        df_detalle_recupero = dfs[4] #Detalle_Recupero
 
         # Crear las pestañas
         tab1, tab2, tab3 = st.tabs(["Global", "Recupero", "Rechazados"])
@@ -29,7 +30,7 @@ try:
             mostrar_global(geojson_data, df_departamentos, df_global, df_recupero)
 
         with tab2:
-            mostrar_recupero(df_recupero, df_departamentos, geojson_data)  
+            mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_data)  
 
         with tab3:
             mostrar_rechazados(df_global, geojson_data, df_departamentos)  

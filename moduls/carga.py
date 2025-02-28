@@ -27,7 +27,8 @@ def load_data_from_huggingface(repo_id, token=None):
         "capa_departamentos_2010.geojson",
         "departamentos_poblacion.csv",
         "vt_nomina_rep_dpto_localidad.parquet",
-        "VT_NOMINA_REP_RECUPERO_X_ANIO.parquet"
+        "VT_NOMINA_REP_RECUPERO_X_ANIO.parquet",
+        "Detalle_recupero.csv"
     ]
     
     try:
