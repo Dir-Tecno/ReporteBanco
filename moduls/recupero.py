@@ -3,13 +3,25 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 
-def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_data):
-    
+def mostrar_recupero(df_recupero, df_detalle_recupero, df_departamentos, geojson_data):
+    """
+    Muestra un resumen de la información de recupero, incluyendo totales de deuda,
+    evolución de la deuda vencida y otros indicadores clave.
+
+    Args:
+        df_recupero (pd.DataFrame): DataFrame con datos generales de recupero.
+        df_detalle_recupero (pd.DataFrame): DataFrame con el detalle de recupero, 
+                                            incluyendo cuotas y deudas por formulario.
+        df_departamentos (pd.DataFrame): DataFrame con información de departamentos.
+        geojson_data (dict): Datos geoespaciales en formato GeoJSON.
+    """
+
+    # --- Procesamiento y Validación de df_recupero ---
     if 'FEC_FORM' not in df_recupero.columns:
         st.error("La columna 'FEC_FORM' no se encuentra en el DataFrame.")
         st.write("Columnas disponibles:", df_recupero.columns.tolist())
         return
-    
+
     # Conversión de columnas de fecha con validación de rango
     date_columns = ['FEC_FORM', 'FEC_INICIO_PAGO', 'FEC_FIN_PAGO']
     min_date = pd.Timestamp.min
@@ -27,18 +39,16 @@ def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_
     if df_recupero.empty:
         st.warning("No hay datos válidos después de procesar las fechas. Verifica los datos cargados.")
         return
-    
-    # Cálculo de solicitudes en las últimas 24 horas
+
+    # --- Cálculo de solicitudes en las últimas 24 horas ---
     fecha_actual = datetime.now()
     fecha_24hs_antes = fecha_actual - timedelta(days=1)
     solicitudes_ultimas_24hs = df_recupero[df_recupero['FEC_FORM'] >= fecha_24hs_antes]
     cantidad_solicitudes_24hs = solicitudes_ultimas_24hs.shape[0]
 
-
-
-    # Categorías de estado
+    # --- Categorías de estado ---
     estado_categorias = {
-        "Pagados": [13, 14,15, 16, 17, 18, 20, 21, 7],
+        "Pagados": [13, 14, 15, 16, 17, 18, 20, 21, 7],
         "Créditos con Deuda": [21],
         "Impagos/Bajas": [23, 22],
         "Finalizados": [7],
@@ -50,8 +60,8 @@ def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_
         for categoria, estados in estado_categorias.items()
     }
 
-    # Diseño de columnas y cuadros de resumen
-    col1, col2, col3, col4 = st.columns(4)
+    # --- Diseño de columnas y cuadros de resumen ---
+    col1, col2, col3, col4,col5 = st.columns(5)
     cuadro_estilo = """
         <div style="margin: 10px; padding: 15px; border-radius: 8px; background-color: {bg_color}; color: {text_color};
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
@@ -60,7 +70,7 @@ def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_
         </div>
     """
 
-    # Mostrar cuadros de resumen
+    # --- Mostrar cuadros de resumen ---
     with col1:
         st.markdown(cuadro_estilo.format(
             titulo="Pagados",
@@ -84,31 +94,8 @@ def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_
             titulo="Finalizados",
             cantidad="{:,.0f}".format(conteo_estados["Finalizados"]),
             bg_color="#dff0d8", text_color="#3c763d"), unsafe_allow_html=True)
-    
-    ## Divisor
-    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
-    
-    # Calcular DEUDA VENCIDA y DEUDA NO VENCIDA
-    deuda_vencida = df_recupero['DEUDA'].sum() if 'DEUDA' in df_recupero.columns else 0
-    deuda_no_vencida = df_recupero['DEUDA_NO_VENCIDA'].sum() if 'DEUDA_NO_VENCIDA' in df_recupero.columns else 0
-
-    # Mostrar tarjetas de DEUDA VENCIDA y DEUDA NO VENCIDA
-    col5, col6,col7 = st.columns(3)
-
-    with col5:
-        st.markdown(cuadro_estilo.format(
-            titulo="DEUDA VENCIDA",
-            cantidad="${:,.2f}".format(deuda_vencida),
-            bg_color="#f2dede", text_color="#a94442"), unsafe_allow_html=True)
-
-    with col6:
-        st.markdown(cuadro_estilo.format(
-            titulo="DEUDA NO VENCIDA",
-            cantidad="${:,.2f}".format(deuda_no_vencida),
-            bg_color="#d9edf7", text_color="#31708f"), unsafe_allow_html=True)
         
-
-    with col7:
+    with col5:
         st.markdown(
             f"""
             <div style="display: flex; justify-content: center; flex-direction: column; align-items: center; margin-bottom: 30px;">
@@ -121,11 +108,56 @@ def mostrar_recupero(df_recupero,df_detalle_recupero, df_departamentos, geojson_
             </div>
             """, unsafe_allow_html=True)
         
-
-    ## Divisor
+    ## --- Divisor ---
     st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
 
-    # Serie de tiempo
+    # --- Calculo de deuda total y prescripta desde df_detalle_recupero ---
+    if df_detalle_recupero is not None and not df_detalle_recupero.empty:
+        deuda_total_detalle = df_detalle_recupero['DEUDA_TOTAL'].sum() if 'DEUDA_TOTAL' in df_detalle_recupero.columns else 0
+        deuda_prescripta_detalle = df_detalle_recupero['DEUDA_PRESCRIPTA'].sum() if 'DEUDA_PRESCRIPTA' in df_detalle_recupero.columns else 0
+        deuda_vencida_detalle = df_detalle_recupero['DEUDA_VENCIDA'].sum() if 'DEUDA_VENCIDA' in df_detalle_recupero.columns else 0
+        deuda_no_vencida_detalle = df_detalle_recupero['DEUDA_NO_VENCIDA'].sum() if 'DEUDA_NO_VENCIDA' in df_detalle_recupero.columns else 0
+
+    else:
+        deuda_total_detalle = 0
+        deuda_prescripta_detalle = 0
+        deuda_vencida_detalle = 0
+        deuda_no_vencida_detalle = 0
+        st.warning("df_detalle_recupero esta vacio, no se pueden mostrar los datos de Deuda Total y deuda Prescripta")
+
+
+    # --- Mostrar tarjetas de DEUDA VENCIDA, DEUDA NO VENCIDA, DEUDA TOTAL Y PRESCRIPTA---
+    col5, col6, col8, col9 = st.columns(4)
+
+    with col5:
+        st.markdown(cuadro_estilo.format(
+            titulo="DEUDA VENCIDA",
+            cantidad="${:,.2f}".format(deuda_vencida_detalle),
+            bg_color="#f2dede", text_color="#a94442"), unsafe_allow_html=True)
+
+    with col6:
+        st.markdown(cuadro_estilo.format(
+            titulo="DEUDA NO VENCIDA",
+            cantidad="${:,.2f}".format(deuda_no_vencida_detalle),
+            bg_color="#d9edf7", text_color="#31708f"), unsafe_allow_html=True)
+    
+    with col8:
+        st.markdown(cuadro_estilo.format(
+            titulo="DEUDA TOTAL",
+            cantidad="${:,.2f}".format(deuda_total_detalle),
+            bg_color="#f2dede", text_color="#a94442"), unsafe_allow_html=True)
+
+    with col9:
+            st.markdown(cuadro_estilo.format(
+                titulo="DEUDA PRESCRIPTA",
+                cantidad="${:,.2f}".format(deuda_prescripta_detalle),
+                bg_color="#f9e79f", text_color="#8a6d3b"), unsafe_allow_html=True)
+
+   
+    ## --- Divisor ---
+    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
+    # --- Serie de tiempo ---
     st.subheader("Evolución de la Deuda Vencida")
     if 'DEUDA' in df_recupero.columns and 'FEC_FORM' in df_recupero.columns:
         df_filtrado_deuda = df_recupero.dropna(subset=['FEC_FORM', 'DEUDA'])
