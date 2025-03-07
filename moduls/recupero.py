@@ -177,3 +177,45 @@ def mostrar_recupero(df_recupero, df_detalle_recupero, df_departamentos, geojson
             st.warning("No se encontraron datos para la serie de tiempo.")
     else:
         st.warning("No se encontró la columna 'DEUDA' para generar la serie de tiempo.")
+
+
+    ## --- Divisor ---
+    st.markdown("<hr style='border: 2px solid #cccccc;'>", unsafe_allow_html=True)
+
+    # --- Nueva Tabla: Agrupación de Formularios por Cuotas Prescriptas ---
+    st.subheader("Cantidad de Formularios por Rangos de Cuotas Prescriptas")
+
+    if df_detalle_recupero is not None and not df_detalle_recupero.empty and 'CUOTAS_PRESCRIPTAS' in df_detalle_recupero.columns:
+        # Definir los rangos de cuotas
+        bins = [0, 5, 10, 15, 20, float('inf')]
+        labels = ['1 a 5', '6 a 10', '11 a 15', '16 a 20', 'Más de 20']
+
+        # Crear una nueva columna con los rangos
+        df_detalle_recupero['Rango_Cuotas'] = pd.cut(df_detalle_recupero['CUOTAS_PRESCRIPTAS'], bins=bins, labels=labels, right=False)
+
+        # Agrupar por rangos y contar la cantidad de formularios
+        if 'ID_FORMULARIO' in df_detalle_recupero.columns:
+          conteo_por_rango = df_detalle_recupero.groupby('Rango_Cuotas')['ID_FORMULARIO'].nunique().reset_index()
+          conteo_por_rango.rename(columns={'ID_FORMULARIO': 'Cantidad de Formularios'}, inplace=True)
+        elif 'ID_FORMULARIO_LINEA' in df_detalle_recupero.columns:
+          conteo_por_rango = df_detalle_recupero.groupby('Rango_Cuotas')['ID_FORMULARIO_LINEA'].nunique().reset_index()
+          conteo_por_rango.rename(columns={'ID_FORMULARIO_LINEA': 'Cantidad de Formularios'}, inplace=True)
+        elif 'id_formulario_linea' in df_detalle_recupero.columns:
+          conteo_por_rango = df_detalle_recupero.groupby('Rango_Cuotas')['id_formulario_linea'].nunique().reset_index()
+          conteo_por_rango.rename(columns={'id_formulario_linea': 'Cantidad de Formularios'}, inplace=True)
+
+        
+        else:
+          st.error("No se encontró una columna que identifique de forma única a los formularios en 'df_detalle_recupero'. Se intentó con: ID_FORMULARIO , ID_FORMULARIO_LINEA, id_formulario_linea .")
+          return
+
+        
+        # Elimino el ultimo label para no mostrar  "Mas de 20" , ya que la consiga del trabajo es solo mostrar hasta 20
+        conteo_por_rango = conteo_por_rango[conteo_por_rango['Rango_Cuotas'] != 'Más de 20']
+
+        # Mostrar la tabla en Streamlit
+        st.dataframe(conteo_por_rango, hide_index=True)
+
+
+    else:
+        st.warning("No se puede mostrar la tabla de rangos de cuotas prescriptas.  Verifica que el DataFrame 'df_detalle_recupero' este cargado y contenga la columna 'CUOTAS_PRESCRIPTAS'.")
